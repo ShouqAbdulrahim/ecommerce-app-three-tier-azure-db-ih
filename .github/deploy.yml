@@ -1,0 +1,34 @@
+name: Deploy to AKS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
+
+      - name: Set image versions
+        run: |
+          kubectl set image deployment/frontend frontend=${{ secrets.REGISTRY_LOGIN_SERVER }}/frontend:v${{ github.run_number }} -n shop
+          kubectl set image deployment/backend backend=${{ secrets.REGISTRY_LOGIN_SERVER }}/backend:v${{ github.run_number }} -n shop
+
+      - name: Verify rollout
+        run: |
+          kubectl -n shop rollout status deployment/frontend
+          kubectl -n shop rollout status deployment/backend

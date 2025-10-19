@@ -1,0 +1,33 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure Container Registry Login
+        run: az acr login --name shopshouqds
+
+      - name: Build and Push Frontend
+        run: |
+          docker build -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/frontend:v${{ github.run_number }} ./ecommerce-app-frontend
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/frontend:v${{ github.run_number }}
+
+      - name: Build and Push Backend
+        run: |
+          docker build -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/backend:v${{ github.run_number }} ./ecommerce-app-backend
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/backend:v${{ github.run_number }}
